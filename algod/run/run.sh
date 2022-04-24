@@ -4,41 +4,15 @@ set -ex
 
 # Script to configure or resume a network. Based on environment settings the
 # node will be setup with a private network or connect to a public network.
-#
-# Environment Parameters
-#
-# ALGORAND_DATA  Path to data directory.
-# ALGOD_PORT     Address to expose algorand REST API.
-# NETWORK        Blank (private network) or mainnet|betanet|testnet|devnet.
-# FAST_CATCHUP   If set, attempt to start fast-catchup during initial config.
-# DEV_MODE       If set, and in private network mode, enable dev mode.
-# TOKEN          If set, overrides the REST API Token.
 
 ####################
 # Helper functions #
 ####################
 
-function catchup() {
-  local FAST_CATCHUP_URL="https://algorand-catchpoints.s3.us-east-2.amazonaws.com/channel/CHANNEL/latest.catchpoint"
-  local CATCHPOINT=$(curl -s ${FAST_CATCHUP_URL/CHANNEL/$NETWORK})
-  if [[ "$(echo $CATCHPOINT | wc -l | tr -d ' ')" != "1" ]]; then
-    echo "Problem starting fast catchup."
-    exit 1
-  fi
-
-  sleep 5
-  #goal node catchup "$CATCHPOINT"
-  goal node catchup 20560000#EHT74WWSMRVUW5XMLFTG533G7CXKMXPG7EWUKX7OFZG3MBS6OGPA
-}
-
-function start_public_network() {
+function apply_configuration() {
   cd "$ALGORAND_DATA"
 
-  if [ $FAST_CATCHUP ]; then
-    catchup&
-  fi
-
-  # on each start, check for a config file override.
+  # check for config file overrides.
   if [ -f "/etc/config.json" ]; then
     cp /etc/config.json config.json
   fi
@@ -49,27 +23,55 @@ function start_public_network() {
     cp /etc/algod.admin.token algod.admin.token
   fi
 
-  # Make sure log file exists. We tail this so it outputs to stdout in docker
-  # TODO: switch to -o when available
-  [ -f "node.log" ] || touch "node.log"
-  tail -F "node.log" &
+  # check for environment variable overrides.
+  if [ "$TOKEN" != "" ]; then
+    echo "$TOKEN" > algod.token
+  fi
+  if [ "$ADMIN_TOKEN" != "" ]; then
+    echo "$ADMIN_TOKEN" > algod.admin.token
+  fi
 
-  # Fork process so that it is pid 1 for the container
-  exec algod 2> "algod-err.log" > "algod-out.log"
+  # configure telemetry
+  if [ "$TELEMETRY_NAME" != "" ]; then
+    diagcfg telemetry name -n "$TELEMETRY_NAME" -d "$ALGORAND_DATA"
+    diagcfg telemetry enable -d "$ALGORAND_DATA"
+  else
+    diagcfg telemetry disable
+  fi
 }
 
-# Should be inside the data directory when calling this.
+function catchup() {
+  local FAST_CATCHUP_URL="https://algorand-catchpoints.s3.us-east-2.amazonaws.com/channel/CHANNEL/latest.catchpoint"
+  local CATCHPOINT=$(curl -s ${FAST_CATCHUP_URL/CHANNEL/$NETWORK})
+  if [[ "$(echo $CATCHPOINT | wc -l | tr -d ' ')" != "1" ]]; then
+    echo "Problem starting fast catchup."
+    exit 1
+  fi
+
+  sleep 5
+  goal node catchup "$CATCHPOINT"
+}
+
+function start_public_network() {
+  cd "$ALGORAND_DATA"
+
+  apply_configuration
+
+  if [ $FAST_CATCHUP ]; then
+    catchup&
+  fi
+  # redirect output to stdout
+  algod -o
+}
+
 function configure_data_dir() {
+  cd "$ALGORAND_DATA"
   algocfg -d . set -p GossipFanout -v 1
-  algocfg -d . set -p EndpointAddress -v "0.0.0.0:${ALGOD_PORT:-4190}"
+  algocfg -d . set -p EndpointAddress -v "0.0.0.0:${ALGOD_PORT}"
   algocfg -d . set -p IncomingConnectionsLimit -v 0
   algocfg -d . set -p Archival -v false
   algocfg -d . set -p IsIndexerActive -v false
   algocfg -d . set -p EnableDeveloperAPI -v true
-
-  if [ "$TOKEN" != "" ]; then
-    echo "$TOKEN" > algod.token
-  fi
 }
 
 function start_new_public_network() {
@@ -103,17 +105,20 @@ function start_new_public_network() {
 }
 
 function start_private_network() {
-  goal network start -r "$ALGORAND_DATA/private_network"
-  tail -f "$ALGORAND_DATA/private_network/Node/node.log"
+  apply_configuration
+
+  # TODO: Is there a way to properly exec a private network?
+  goal network start -r "$ALGORAND_DATA/.."
+  tail -f "$ALGORAND_DATA/node.log"
 }
 
 function start_new_private_network() {
+  cd /node
   local TEMPLATE="template.json"
   if [ "$DEV_MODE" ]; then
     TEMPLATE="devmode_template.json"
   fi
-  goal network create -n dockernet -r "$ALGORAND_DATA/private_network" -t "run/$TEMPLATE"
-  cd "$ALGORAND_DATA/private_network/Node"
+  goal network create -n dockernet -r "$ALGORAND_DATA/.." -t "run/$TEMPLATE"
   configure_data_dir
   start_private_network
 }
@@ -129,9 +134,10 @@ echo "   ALGOD_PORT:    $ALGOD_PORT"
 echo "   FAST_CATCHUP:  $FAST_CATCHUP"
 echo "   DEV_MODE:      $DEV_MODE"
 echo "   TOKEN:         $TOKEN"
+echo "   TELEMETRY_NAME $TELEMETRY_NAME"
 
-# Check if data directory is initialized, start environment.
-if [ -f "$ALGORAND_DATA/network.json" ]; then
+# If data directory is initialized, start existing environment.
+if [ -f "$ALGORAND_DATA/../network.json" ]; then
   start_private_network
   exit 1
 elif [ -f "$ALGORAND_DATA/genesis.json" ]; then

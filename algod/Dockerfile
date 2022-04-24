@@ -40,19 +40,33 @@ COPY --from=builder "/node/data/" "/node/dataTemplate"
 COPY --from=builder "/node/files/run" "/node/run"
 
 ENV BIN_DIR="/node/bin"
-ENV ALGORAND_DATA="/node/data"
 ENV PATH="$BIN_DIR:${PATH}"
-WORKDIR /node
+ENV ALGOD_PORT=8080
+ENV ALGORAND_DATA="/algod/data"
+RUN mkdir -p "$ALGORAND_DATA"
+WORKDIR /node/data
 
 # curl is needed to lookup the fast catchup url
 RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
+# TODO: This works fine, but causes problems when mounting a volume
 # Use algorand user instead of root
-RUN groupadd -r algorand && \
-  useradd --no-log-init -r -g algorand algorand && \
-  chown -R algorand.algorand /node
-USER algorand
+#RUN groupadd -r algorand && \
+#  useradd --no-log-init -r -g algorand algorand && \
+#  chown -R algorand.algorand /node && \
+#  chown -R algorand.algorand /algod
+#USER algorand
+
+# Algod REST API
+EXPOSE $ALGOD_PORT
+
+# Algod Gossip Port
+EXPOSE 4160
+
+# Prometheus Metrics
+EXPOSE 9100
 
 CMD ["/node/run/run.sh"]
+#CMD ["/bin/bash"]

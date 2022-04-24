@@ -28,18 +28,12 @@
     },
     "Nodes": [
         {
-            "Name": "Primary",
-            "IsRelay": true,
+            "Name": "data",
             "Wallets": [
                 {
                     "Name": "Wallet1",
                     "ParticipationOnly": false
-                }
-            ]
-        },
-        {
-            "Name": "Node",
-            "Wallets": [
+                },
                 {
                     "Name": "Wallet2",
                     "ParticipationOnly": false

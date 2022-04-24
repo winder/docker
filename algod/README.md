@@ -2,7 +2,7 @@
 
 Container to run an algorand node.
 
-Image is built using two stages. In the first stage, binaries are generated with the `install.sh` script. Resulting artifacts are copied into the second stage for final packaging.
+Image is built using two stages. In the first stage, binaries are generated with the `install.sh` script. Resulting binaries are copied into the second stage for final packaging.
 
 ## Build Arguments
 
@@ -14,9 +14,9 @@ Binaries are generated using the following build arguments.
 | BRANCH   | Git branch to checkout. |
 | SHA      | Git commit hash to checkout. |
 
-# Image Usage
+# Image Configuration
 
-There are a number of special files and environment variables used to control which network to connect to, and how to initalize. If a persistent data directory is desired, a volume can be attached.
+There are a number of special files and environment variables used to control how a container is started.
 
 ## Default Configuration
 
@@ -25,7 +25,7 @@ By default the following config.json overrides are applied:
 | Setting | Value |
 | ------- | ----- |
 | GossipFanout | 1 |
-| EndpointAddress | 0.0.0.0:4190 |
+| EndpointAddress | 0.0.0.0:8080 |
 | IncomingConnectionsLimit | 0 |
 | Archival | false |
 | IsIndexerActive | false |
@@ -33,19 +33,21 @@ By default the following config.json overrides are applied:
 
 ## Environment Variables
 
-When starting the image, environment variables are used to configure what
-mode algod will run in.
+The following environment variables can be supplied. Except when noted, it is possible to reconfigure settings when the data directory is a mounted volume.
 
 | Variable | Description |
 | -------- | ----------- |
-| NETWORK  | Leave blank to start a private network, otherwise specify one of (mainnet, testnet, betanet, devnet) |
-| FAST_CATCHUP | When starting a production network, setting this will attempt to start a fast catchup. |
-| DEV_MODE     | When running a private network, setting this will enable dev mode. |
-| TOKEN        | Specify a REST API token to use. |
+| NETWORK       | Leave blank for a private network, otherwise specify one of mainnet, bet    anet, testnet, or devnet. Only used during a data directory initialization. |
+| FAST_CATCHUP  | If set on a public network, attempt to start fast-catchup during initial     config. |
+| TELEMETRY_NAME| If set on a public network, telemetry is reported with this name. |
+| DEV_MODE      | If set on a private network, enable dev mode. Only used during data directory initialization. |
+| TOKEN         | If set, overrides the REST API token. |
+| ADMIN_TOKEN   | If set, overrides the REST API admin token. |
 
-## Special files
 
-Configuration can be modified by specifying certian files. These can be changed each time you start the container. This allows you to do things like toggle EnableDeveloperAPI temporarily.
+## Special Files
+
+Configuration can be modified by specifying certian files. These can be changed each time you start the container if the data directory is a mounted volume.
 
 | File | Description |
 | ---- | ----------- |
@@ -53,10 +55,40 @@ Configuration can be modified by specifying certian files. These can be changed 
 | /etc/algod.token | Override default randomized REST API token. |
 | /etc/algod.admin.token | Override default randomized REST API admin token. |
 
-## Data directory
+TODO: `/etc/template.json` for overriding the private network topology.
 
-The data directory is mounted at `/node/data`. Mounting a volume at that location will allow you to shutdown and resume the node.
+# Example Configuration
 
-When running a private network, a `private_network` directory is stored at that location. By default the installation at `/node/data/private_network/Node` is exposed on port 4190.
+The following command launches a container configured with one of the public networks:
+```
+docker run --rm -it \
+    -p 4190:8080 \
+    -e NETWORK=mainnet \
+    -e FAST_CATCHUP=1 \
+    -e TELEMETRY_NAME=name \
+    -e TOKEN=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa \
+    -v ${PWD}/data:/algod/data/ \
+    --name mainnet-container \
+    algorand/algod:latest
+```
 
-TODO: After #3911 is widely available, we can play some games with the data directory so that ALGORAND_DATA points to the primary data directory for public and private networks.
+Explanation of parts:
+* `-p 4190:8080` maps the internal algod REST API to local port 4190
+* `-e NETWORK=` can be set to any of the supported public networks.
+* `-e FAST_CATCHUP=` causes fast catchup to start shortly after launching the network.
+* `-e TELEMETRY_NAME=` enables telemetry reporting to Algorand for network health analysis.
+* `-e TOKEN=` sets the REST API token to use.
+* `-v ${PWD}/data:/algod/data/` mounts a local volume to the data directory, which can be used to restart and upgrad the deployment.
+
+
+# Mounting the Data Directory
+
+The data directory located at `/algod/data`. Mounting a volume at that location will allow you to shutdown and resume the node.
+
+## Private Network
+
+Private networks work a little bit differently. They are configured with, potentially, several data directories. To allow a seamless experience, the default topology supplied with this container is installed to `/algod/`, and a single node named `data` is configured. This means the private network has a data directory at `/algod/data`.
+
+If persistence is required, you should mount the volume `/algod/` instead of `/algod/data`. This will allow the network to be persisted even with other network configurations.
+
+*Note: The private network changes depend on #3911, which allows the private network root directory to exist if it is empty.*

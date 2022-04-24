@@ -22,16 +22,27 @@ branch:
 		-t algod_branch \
 		--build-arg CHANNEL= \
 		--build-arg URL=http://github.com/winder/go-algorand \
-		--build-arg BRANCH=will/allow-empty-network-dir \
+		--build-arg BRANCH=will/create-logging-in-data \
 		--no-cache \
 		algod
 
+branch-mainnet:
+	docker run --rm -it \
+		-p 4190:8080 \
+		--name algod-branch-run \
+		-v ${PWD}/data:/algod/data/ \
+		-e NETWORK=mainnet \
+		-e FAST_CATCHUP=1 \
+		-e TOKEN=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa \
+		algod_branch
+
 branch-private:
 	docker run --rm -it \
-		-p 4190:4190 \
+		-p 4190:8080 \
 		--name algod-branch-run \
-		-v ${PWD}/data:/node/data/private_network/Node/ \
 		-e TOKEN=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa \
+		-e ADMIN_TOKEN=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa \
+		-v ${PWD}/data:/algod/ \
 		algod_branch
 
 clean:
@@ -39,20 +50,20 @@ clean:
 
 algod-mainnet:
 	docker run --rm -it \
-		-p 4190:4190 \
+		-p 4190:8080 \
 		--name algod-test-run \
 		-e NETWORK=mainnet \
 		-e FAST_CATCHUP=1 \
 		-e TOKEN=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa \
-		-v ${PWD}/data:/node/data \
+		-v ${PWD}/data:/algod/data \
 		algod_test
 
 algod-private:
 	docker run --rm -it \
-		-p 4190:4190 \
+		-p 4190:8080 \
 		--name algod-test-run \
 		-e DEV_MODE=1 \
 		-e TOKEN=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa \
 		algod_test
-		#-v ${PWD}/data:/node/data \
+		#-v ${PWD}/data:/algod/data \
 		#--user "$(shell id -u ):$(shell id -g )" \
