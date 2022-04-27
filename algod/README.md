@@ -41,6 +41,7 @@ The following environment variables can be supplied. Except when noted, it is po
 | FAST_CATCHUP  | If set on a public network, attempt to start fast-catchup during initial     config. |
 | TELEMETRY_NAME| If set on a public network, telemetry is reported with this name. |
 | DEV_MODE      | If set on a private network, enable dev mode. Only used during data directory initialization. |
+| NUM_ROUNDS    | If set on a private network, override default of 30000 participation keys. |
 | TOKEN         | If set, overrides the REST API token. |
 | ADMIN_TOKEN   | If set, overrides the REST API admin token. |
 

@@ -42,6 +42,7 @@ branch-private:
 		--name algod-branch-run \
 		-e TOKEN=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa \
 		-e ADMIN_TOKEN=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa \
+		-e NETWORK_NUM_ROUNDS=30001 \
 		-v ${PWD}/data:/algod/ \
 		algod_branch
 
