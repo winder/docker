@@ -19,10 +19,10 @@ algod-rebuild:
 
 branch:
 	docker build \
-		-t algod_branch \
+		-t wwinder/algod:latest \
 		--build-arg CHANNEL= \
-		--build-arg URL=http://github.com/winder/go-algorand \
-		--build-arg BRANCH=will/create-logging-in-data \
+		--build-arg URL=https://github.com/algorand/go-algorand \
+		--build-arg BRANCH=master \
 		--no-cache \
 		algod
 
@@ -68,3 +68,12 @@ algod-private:
 		algod_test
 		#-v ${PWD}/data:/algod/data \
 		#--user "$(shell id -u ):$(shell id -g )" \
+
+launch-public:
+	docker run --rm -it \
+	-p 4190:8080 \
+	--name algod-test \
+	-e TOKEN=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa \
+	-e ADMIN_TOKEN=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa \
+	-e NUM_ROUNDS=30001 \
+	wwinder/algod:latest
