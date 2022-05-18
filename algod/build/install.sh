@@ -68,18 +68,21 @@ fi
 
 # Build from source.
 if [ -n "$BRANCH" ]; then
-    git clone --single-branch --branch "${BRANCH}" "${URL}"
-    cd go-algorand
-    if [ "${SHA}" != "" ]; then
-      echo "Checking out ${SHA}"
-      git checkout "${SHA}"
-    fi
-
-    git log -n 5
-
-    ./scripts/configure_dev.sh
-    make build
-    ./scripts/dev_install.sh -p "${BINDIR}" -d "${ALGORAND_DATA}"
+  git clone --single-branch --branch "${BRANCH}" "${URL}"
+else
+  git clone "${URL}"
 fi
+
+cd go-algorand
+if [ "${SHA}" != "" ]; then
+  echo "Checking out ${SHA}"
+  git checkout "${SHA}"
+fi
+
+git log -n 5
+
+./scripts/configure_dev.sh
+make build
+./scripts/dev_install.sh -p "${BINDIR}" -d "${ALGORAND_DATA}"
 
 "$BINDIR"/algod -v
