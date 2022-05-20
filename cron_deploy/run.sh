@@ -2,6 +2,8 @@
 
 set -e
 
+CWD=$(pwd)
+
 help() {
   echo "Clone / update a go-algorand git repository and attempt to build"
   echo "docker containers."
@@ -56,14 +58,17 @@ build_and_push_container() {
   local COMMIT_HASH="$1"
   shift
 
+  local FIRST_TAG="$1"
   local DEFAULT_TAG="$IMAGE_NAME:$1"
   shift
 
   # if the container already exists, exit
-  if docker manifest inspect "$DEFAULT_TAG" > /dev/null; then
-    echo "Container already exists: $DEFAULT_TAG"
+  if docker manifest inspect "$DEFAULT_TAG" > /dev/null 2>&1; then
+    echo "Skipping build for: $DEFAULT_TAG ($FIRST_TAG $@)"
     return
   fi
+
+  echo "Building container for: $DEFAULT_TAG ($FIRST_TAG $@)"
 
   cd "$DOCKER_DIR"
   docker build \
@@ -71,17 +76,18 @@ build_and_push_container() {
     --build-arg CHANNEL= \
     --build-arg URL=https://github.com/algorand/go-algorand \
     --build-arg SHA="$COMMIT_HASH" \
-    --no-cache \
-    .
+    . > "$CWD/docker_build_$FIRST_TAG.log" 2>&1
 
-  docker push "$DEFAULT_TAG"
+  echo " * pushing $DEFAULT_TAG"
+  docker push "$DEFAULT_TAG" > "$CWD/docker_push_$FIRST_TAG.log" 2>&1
 
   # If there is more than one tag, create them and push them too.
   for tag in "$@"; do
     local NEW_TAG="$IMAGE_NAME:$tag"
-    docker tag "$DEFAULT_TAG" "$NEW_TAG"
-    docker push "$NEW_TAG"
+    echo " * pushing $NEW_TAG"
+    docker tag "$DEFAULT_TAG" "$NEW_TAG" > "$CWD/docker_push_$tag.log" 2>&1
   done
+  echo " Done."
 }
 
 # bootstrap directory with go-algorand if it's missing
@@ -99,7 +105,7 @@ BETA_HASH=$(git rev-list -n 1 $BETA_TAG)
 git checkout master
 git pull
 NIGHTLY_HASH=$(git log -1 --format=format:"%H")
-NIGHTLY_TAG=$(git log -1 --format=format:"%h")
+NIGHTLY_TAG="dev-$(git log -1 --format=format:"%h")"
 
 # no tags for nightly, so grab the latest build number
 # look for commit oneline with 'HASHCODE Build 1234 Data'
@@ -115,4 +121,4 @@ echo "======="
 
 build_and_push_container "$STABLE_HASH" "$STABLE_TAG" "stable" "latest"
 build_and_push_container "$BETA_HASH" "$BETA_TAG" "beta"
-build_and_push_container "$NIGHTLY_HASH" "$NIGHTLY_TAG" "nightly"
+build_and_push_container "$NIGHTLY_HASH" "$NIGHTLY_TAG" "dev"
