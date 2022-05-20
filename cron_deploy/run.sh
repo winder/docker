@@ -4,6 +4,9 @@ set -e
 
 CWD=$(pwd)
 
+echo "Running docker deploy script at $(date)"
+echo "CWD: $CWD"
+
 help() {
   echo "Clone / update a go-algorand git repository and attempt to build"
   echo "docker containers."
@@ -42,6 +45,11 @@ if [ -z "$IMAGE_NAME" ]; then
   echo "image name must be provided with '-n <name>'"
   exit 1
 fi
+
+echo "Parameters:"
+echo " DOCKER_DIR = $DOCKER_DIR"
+echo " GIT_DIR    = $CWD/$GIT_DIR"
+echo " IMAGE_NAME = $IMAGE_NAME"
 
 # Attempt to build and push a container.
 # Multiple labels can be provided. 
@@ -91,7 +99,8 @@ build_and_push_container() {
 }
 
 # bootstrap directory with go-algorand if it's missing
-git clone git@github.com:algorand/go-algorand.git "$GIT_DIR" || true
+#git clone git@github.com:algorand/go-algorand.git "$GIT_DIR" || true
+git clone https://github.com/algorand/go-algorand.git "$GIT_DIR" || true
 pushd "$GIT_DIR"
 
 # get latest tags and check for new stable/beta tags.
@@ -122,3 +131,5 @@ echo "======="
 build_and_push_container "$STABLE_HASH" "$STABLE_TAG" "stable" "latest"
 build_and_push_container "$BETA_HASH" "$BETA_TAG" "beta"
 build_and_push_container "$NIGHTLY_HASH" "$NIGHTLY_TAG" "dev"
+
+echo "------------------------------------"
