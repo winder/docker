@@ -1,18 +1,7 @@
 # Algod Container
 
-Container to run an algorand node.
+General purpose algod docker container.
 
-Image is built using two stages. In the first stage, binaries are generated with the `install.sh` script. Resulting binaries are copied into the second stage for final packaging.
-
-## Build Arguments
-
-Binaries are generated using the following build arguments.
-| Argument | Description |
-| -------- | ----------- |
-| CHANNEL  | Download latest binaries for a given release channel. |
-| URL      | Git URL to download sources from. |
-| BRANCH   | Git branch to checkout. |
-| SHA      | Git commit hash to checkout. |
 
 # Image Configuration
 
@@ -33,12 +22,12 @@ By default the following config.json overrides are applied:
 
 ## Environment Variables
 
-The following environment variables can be supplied. Except when noted, it is possible to reconfigure settings when the data directory is a mounted volume.
+The following environment variables can be supplied. Except when noted, it is possible to reconfigure deployments even after the data directory has been initialized.
 
 | Variable | Description |
 | -------- | ----------- |
-| NETWORK       | Leave blank for a private network, otherwise specify one of mainnet, bet    anet, testnet, or devnet. Only used during a data directory initialization. |
-| FAST_CATCHUP  | If set on a public network, attempt to start fast-catchup during initial     config. |
+| NETWORK       | Leave blank for a private network, otherwise specify one of mainnet, betanet, testnet, or devnet. Only used during a data directory initialization. |
+| FAST_CATCHUP  | If set on a public network, attempt to start fast-catchup during initial config. |
 | TELEMETRY_NAME| If set on a public network, telemetry is reported with this name. |
 | DEV_MODE      | If set on a private network, enable dev mode. Only used during data directory initialization. |
 | NUM_ROUNDS    | If set on a private network, override default of 30000 participation keys. |
@@ -88,8 +77,7 @@ The data directory located at `/algod/data`. Mounting a volume at that location 
 
 ## Private Network
 
-Private networks work a little bit differently. They are configured with, potentially, several data directories. To allow a seamless experience, the default topology supplied with this container is installed to `/algod/`, and a single node named `data` is configured. This means the private network has a data directory at `/algod/data`.
+Private networks work a little bit differently. They are configured with, potentially, several data directories. The default topology supplied with this container is installed to `/algod/`, and has a single node named `data`. This means the private network has a data directory at `/algod/data`, matching the production configuration.
 
-If persistence is required, you should mount the volume `/algod/` instead of `/algod/data`. This will allow the network to be persisted even with other network configurations.
+Because the root directory contains some metadata, if persistence of the private network is required, you should mount the volume `/algod/` instead of `/algod/data`. This will ensure the extra metadata is included when changing images.
 
-*Note: The private network changes depend on #3911, which allows the private network root directory to exist if it is empty.*
