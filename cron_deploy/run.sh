@@ -114,7 +114,7 @@ BETA_HASH=$(git rev-list -n 1 $BETA_TAG)
 git checkout master
 git pull
 NIGHTLY_HASH=$(git log -1 --format=format:"%H")
-NIGHTLY_TAG="dev-$(git log -1 --format=format:"%h")"
+NIGHTLY_TAG="$(git log -1 --format=format:"%h")-dev"
 
 # no tags for nightly, so grab the latest build number
 # look for commit oneline with 'HASHCODE Build 1234 Data'
