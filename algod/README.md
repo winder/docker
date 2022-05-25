@@ -18,7 +18,7 @@ By default the following config.json overrides are applied:
 | IncomingConnectionsLimit | 0 |
 | Archival | false |
 | IsIndexerActive | false |
-| EnavleDeveloperAPI | true |
+| EnableDeveloperAPI | true |
 
 ## Environment Variables
 
