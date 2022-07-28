@@ -87,13 +87,16 @@ build_and_push_container() {
     . > "$CWD/docker_build_$FIRST_TAG.log" 2>&1
 
   echo " * pushing $DEFAULT_TAG"
-  docker push "$DEFAULT_TAG" > "$CWD/docker_push_$FIRST_TAG.log" 2>&1
+  echo "pushing @ $(date)" >> "$CWD/docker_push_$FIRST_TAG.log"
+  docker push "$DEFAULT_TAG" >> "$CWD/docker_push_$FIRST_TAG.log" 2>&1
 
   # If there is more than one tag, create them and push them too.
   for tag in "$@"; do
     local NEW_TAG="$IMAGE_NAME:$tag"
     echo " * pushing $NEW_TAG"
-    docker tag "$DEFAULT_TAG" "$NEW_TAG" > "$CWD/docker_push_$tag.log" 2>&1
+    echo "pushing @ $(date)" >> "$CWD/docker_push_$tag.log"
+    docker tag "$DEFAULT_TAG" "$NEW_TAG" >> "$CWD/docker_push_$tag.log" 2>&1
+    docker push "$NEW_TAG" >> "$CWD/docker_push_$tag.log" 2>&1
   done
   echo " Done."
 }
