@@ -24,7 +24,8 @@
                 "Stake": 10,
                 "Online": false
             }
-        ]
+        ],
+        "RewardsPoolBalance": 0
     },
     "Nodes": [
         {
